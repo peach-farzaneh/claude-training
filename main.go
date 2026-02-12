@@ -1,11 +1,23 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
+
+// ConfigValidationError is returned when one or more required config fields
+// are missing or empty.
+type ConfigValidationError struct {
+	MissingFields []string
+}
+
+func (e *ConfigValidationError) Error() string {
+	return fmt.Sprintf("missing required config fields: %s", strings.Join(e.MissingFields, ", "))
+}
 
 // Config holds the application configuration fields.
 type Config struct {
@@ -24,10 +36,14 @@ func (c *Config) Validate() error {
 		{"database_url", c.DatabaseURL},
 		{"log_level", c.LogLevel},
 	}
+	var missing []string
 	for _, ch := range checks {
 		if ch.value == "" {
-			return fmt.Errorf("missing required config field: %s", ch.name)
+			missing = append(missing, ch.name)
 		}
+	}
+	if len(missing) > 0 {
+		return &ConfigValidationError{MissingFields: missing}
 	}
 	return nil
 }
@@ -59,7 +75,15 @@ func main() {
 
 	cfg, err := LoadConfig(configPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		var valErr *ConfigValidationError
+		if errors.As(err, &valErr) {
+			fmt.Fprintf(os.Stderr, "validation error: %v\n", err)
+			for _, f := range valErr.MissingFields {
+				fmt.Fprintf(os.Stderr, "  - %s\n", f)
+			}
+		} else {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		}
 		os.Exit(1)
 	}
 
