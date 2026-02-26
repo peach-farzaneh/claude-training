@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+namespace: production
+
+patches:
+  - path: patches/replicas.yaml
+  - path: patches/resources.yaml
+  - path: patches/hpa.yaml
+
+configMapGenerator:
+  - name: worker-config
+    literals:
+      - log-level=info
+      - redis-addr=redis.production.svc.cluster.local:6379

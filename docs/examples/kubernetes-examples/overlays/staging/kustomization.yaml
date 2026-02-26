@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+namespace: staging
+
+patches:
+  - path: patches/replicas.yaml
+  - path: patches/resources.yaml
+
+configMapGenerator:
+  - name: worker-config
+    literals:
+      - log-level=debug
+      - redis-addr=redis.staging.svc.cluster.local:6379
